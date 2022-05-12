@@ -97,6 +97,8 @@ def orders_index():
     if request.method == 'GET':
         data = []
         for order in Orders.query.all():
+            customer = User.query.get(order.customer_id).first_name if User.query.get(order.customer_id) else order.customer_id
+            executor = User.query.get(order.executor_id).first_name if User.query.get(order.executor_id) else order.executor_id
             data.append({
                 "id": order.id,
                 "name": order.name,
@@ -105,8 +107,8 @@ def orders_index():
                 "end_date": order.end_date,
                 "address": order.address,
                 "price": order.price,
-                "customer_id": order.customer_id,
-                "executor_id": order.executor_id,
+                "customer_id": customer,
+                "executor_id": executor,
             })
         return jsonify(data)
 
