@@ -67,7 +67,6 @@ def insert_data():
     for order in orders:
         new_orders.append(
             Orders(
-                id=order['id'],
                 name=order['name'],
                 description=order['description'],
                 start_date=datetime.strptime(order['start_date'], '%m/%d/%Y'),
@@ -79,7 +78,7 @@ def insert_data():
             )
         )
     for offer in offers:
-        new_orders.append(
+        new_offers.append(
             Offers(
                 id=offer['id'],
                 order_id=offer['order_id'],
@@ -92,13 +91,88 @@ def insert_data():
         db.session.add_all(new_orders)
 
 
-@app.route('/', methods=['GET', 'POST'])
-def orders_index():
+@app.route('/users', methods=['GET', 'POST'])
+def users_():
+    if request.method == 'GET':
+        data = []
+        for user_ in User.query.all():
+            data.append({
+                "id": user_.id,
+                "first_name": user_.first_name,
+                "last_name": user_.last_name,
+                "age": user_.age,
+                "email": user_.email,
+                "role": user_.role,
+                "phone": user_.phone,
+            })
+        return jsonify(data)
+    elif request.method == 'POST':
+        try:
+            data = request.get_json()
+            new_user = User(
+                first_name=data['first_name'],
+                last_name=data['last_name'],
+                age=data['age'],
+                email=data['email'],
+                address=data['address'],
+                role=data['role'],
+                phone=data['phone'],
+            )
+
+            db.session.add(new_user)
+            db.session.commit()
+
+            return 'Клиент добавлен'
+        except TypeError:
+            return "Проверьте вводимые данные"
+
+
+@app.route('/users/<int:uid>', methods=['GET', "PUT", "DELETE"])
+def users_by_id(uid):
+    try:
+        if request.method == 'GET':
+            user = User.query.get(uid)
+            data = {
+                "id": user.id,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "age": user.age,
+                "email": user.email,
+                "role": user.role,
+                "phone": user.phone,
+            }
+            return jsonify(data)
+        elif request.method == 'PUT':
+            data = request.get_json(uid)
+            user = User.query.get(uid)
+            user.first_name = data["first_name"]
+            user.last_name = data["last_name"]
+            user.age = data['age']
+            user.email = data['email']
+            user.role = data['role']
+            user.phone = data['phone']
+
+            db.session.add(user)
+            db.session.commit()
+            return "Данные пользователя обновлены"
+        elif request.method == 'DELETE':
+            user = User.query.get(uid)
+            db.session.add(user)
+            db.session.commit()
+            return "Пользователь удалён"
+    except AttributeError:
+        return 'Пользователь с таким id  не найден'
+
+
+@app.route('/orders', methods=['GET', 'POST'])
+def orders_():
     if request.method == 'GET':
         data = []
         for order in Orders.query.all():
-            customer = User.query.get(order.customer_id).first_name if User.query.get(order.customer_id) else order.customer_id
-            executor = User.query.get(order.executor_id).first_name if User.query.get(order.executor_id) else order.executor_id
+            customer = User.query.get(order.customer_id).first_name if User.query.get(
+                order.customer_id) else order.customer_id
+            executor = User.query.get(order.executor_id).first_name if User.query.get(
+                order.executor_id) else order.executor_id
             data.append({
                 "id": order.id,
                 "name": order.name,
@@ -111,6 +185,137 @@ def orders_index():
                 "executor_id": executor,
             })
         return jsonify(data)
+    elif request.method == 'POST':
+        try:
+            data = request.get_json()
+            new_order = Orders(
+                name=data['name'],
+                description=data['description'],
+                start_date=datetime.strptime(data['start_date'], '%m/%d/%Y'),
+                end_date=datetime.strptime(data['end_date'], '%m/%d/%Y'),
+                address=data['address'],
+                price=data['price'],
+                customer_id=data['customer_id'],
+                executor_id=data['executor_id'],
+            )
+
+            db.session.add(new_order)
+            db.session.commit()
+            return 'Заказ добавлен'
+        except TypeError:
+            return "Проверьте вводимые данные"
+
+
+@app.route('/orders/<int:oid>', methods=['GET', "PUT", "DELETE"])
+def orders_by_id(oid):
+    try:
+        if request.method == 'GET':
+            order = Orders.query.get(oid)
+            customer = User.query.get(order.customer_id).first_name if User.query.get(
+                order.customer_id) else order.customer_id
+            executor = User.query.get(order.executor_id).first_name if User.query.get(
+                order.executor_id) else order.executor_id
+            data = {
+                "id": order.id,
+                "name": order.name,
+                "description": order.description,
+                "start_date": order.start_date,
+                "end_date": order.end_date,
+                "address": order.address,
+                "price": order.price,
+                "customer_id": customer,
+                "executor_id": executor,
+            }
+            return jsonify(data)
+        elif request.method == 'PUT':
+            data = request.get_json(oid)
+            order = User.query.get(oid)
+            order.name = data['name']
+            order.description = data['description']
+            order.start_date = datetime.strptime(data['start_date'], '%m/%d/%Y')
+            order.end_date = datetime.strptime(data['end_date'], '%m/%d/%Y')
+            order.address = data['address']
+            order.price = data['price']
+            order.customer_id = data['customer_id']
+            order.executor_id = data['executor_id']
+
+            db.session.add(order)
+            db.session.commit()
+            return "Данные заказа обновлены"
+        elif request.method == 'DELETE':
+            order = Orders.query.get(oid)
+            db.session.add(order)
+            db.session.commit()
+            return "Заказ удалён"
+    except AttributeError:
+        return 'Заказ с таким id  не найден'
+
+
+@app.route('/offers', methods=['GET', 'POST'])
+def offers_():
+    if request.method == 'GET':
+        data = []
+        for offer in Offers.query.all():
+            order_name = Orders.query.get(offer.order_id).name if Orders.query.get(
+                offer.order_id) else offer.order_id
+            executor = User.query.get(offer.executor_id).first_name if User.query.get(
+                offer.executor_id) else offer.executor_id
+            data.append({
+                "id": offer.id,
+                "order_id": offer.order_id,
+                "order_name": order_name,
+                "executor_id": executor,
+            })
+        return jsonify(data)
+    elif request.method == 'POST':
+        try:
+            data = request.get_json()
+            new_offer = Offers(
+                id=data['id'],
+                order_id=data['order_id'],
+                executor_id=data['executor_id'],
+            )
+
+            db.session.add(new_offer)
+            db.session.commit()
+            return "Данные добавлены"
+        except TypeError:
+            return "Проверьте вводимые данные"
+
+
+@app.route('/offers/<int:ofid>', methods=['GET', "PUT", "DELETE"])
+def offer_by_id(ofid):
+    try:
+        if request.method == 'GET':
+            offer = Offers.query.get(ofid)
+            order_name = Orders.query.get(offer.order_id).name if Orders.query.get(
+                offer.order_id) else offer.order_id
+            executor = User.query.get(offer.executor_id).first_name if User.query.get(
+                offer.executor_id) else offer.executor_id
+            data = {
+                "id": offer.id,
+                "order_id": offer.order_id,
+                "order_name": order_name,
+                "executor_id": executor,
+            }
+            return jsonify(data)
+        elif request.method == 'PUT':
+            data = request.get_json(ofid)
+            offer = Offers.query.get(ofid)
+            offer.id = data['id']
+            offer.order_id = data['order_id']
+            offer.executor_id = data['executor_id']
+
+            db.session.add(offer)
+            db.session.commit()
+            return "Данные обновлены"
+        elif request.method == 'DELETE':
+            offer = Offers.query.get(ofid)
+            db.session.add(offer)
+            db.session.commit()
+            return "Данные удалёны"
+    except AttributeError:
+        return 'Данные с таким id  не найдены'
 
 
 if __name__ == "__main__":
